@@ -1,0 +1,55 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Build iOS (without signing)
+      run: |
+        flutter build ios --release --no-codesign
+        
+    - name: Create IPA manually
+      run: |
+        mkdir -p build/ios/ipa
+        cd build/ios/iphoneos
+        mkdir -p Payload
+        cp -r Runner.app Payload/
+        zip -r ../ipa/app-unsigned.ipa Payload/
+        
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-app-unsigned
+        path: build/ios/ipa/app-unsigned.ipa
+        
+    - name: Create Release
+      if: github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Release v${{ github.run_number }}
+        files: build/ios/ipa/app-unsigned.ipa
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
