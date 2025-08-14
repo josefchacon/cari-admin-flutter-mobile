@@ -1,15 +1,13 @@
-name: Build iOS App
+name: Build Flutter App
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build-ios:
-    runs-on: macos-latest
+  build-web:
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout repository
@@ -21,35 +19,23 @@ jobs:
         flutter-version: '3.16.0'
         channel: 'stable'
         
+    - name: Disable Flutter Analytics
+      run: flutter --disable-analytics
+      
     - name: Install dependencies
       run: flutter pub get
       
-    - name: Build iOS (without signing)
-      run: |
-        flutter build ios --release --no-codesign
-        
-    - name: Create IPA manually
-      run: |
-        mkdir -p build/ios/ipa
-        cd build/ios/iphoneos
-        mkdir -p Payload
-        cp -r Runner.app Payload/
-        zip -r ../ipa/app-unsigned.ipa Payload/
-        
-    - name: Upload IPA
+    - name: Build Web
+      run: flutter build web --release
+      
+    - name: Upload Web Build
       uses: actions/upload-artifact@v4
       with:
-        name: ios-app-unsigned
-        path: build/ios/ipa/app-unsigned.ipa
+        name: web-app
+        path: build/web/
         
-    - name: Create Release
-      if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
       with:
-        tag_name: v${{ github.run_number }}
-        name: Release v${{ github.run_number }}
-        files: build/ios/ipa/app-unsigned.ipa
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build/web
