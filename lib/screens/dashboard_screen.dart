@@ -4,6 +4,10 @@ import '../models/survey_data.dart';
 import '../services/firebase_service.dart';
 
 class DashboardScreen extends StatefulWidget {
+  final VoidCallback? onLogout;
+  
+  const DashboardScreen({Key? key, this.onLogout}) : super(key: key);
+  
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
 }
@@ -27,6 +31,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text('Dashboard Cari'),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
+        actions: [
+          if (widget.onLogout != null)
+            IconButton(
+              icon: Icon(Icons.logout),
+              onPressed: widget.onLogout,
+              tooltip: 'Cerrar Sesión',
+            ),
+        ],
       ),
       body: StreamBuilder<List<SurveyData>>(
         stream: FirebaseService.getSurveys(),
